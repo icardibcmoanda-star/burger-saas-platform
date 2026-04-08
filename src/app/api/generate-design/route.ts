@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Falta configurar la API Key en Vercel" }, { status: 500 });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const systemPrompt = `Eres un experto en branding y diseño web. 
     Responde EXCLUSIVAMENTE con un objeto JSON válido.
