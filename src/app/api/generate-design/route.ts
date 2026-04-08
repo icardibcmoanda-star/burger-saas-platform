@@ -3,9 +3,12 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
-    const apiKey = "AIzaSyCh2DrQusiYh2ki7sTxWc5X-I6TuHx4bKE";
+    const apiKey = process.env.GEMINI_API_KEY; // Usamos la variable segura de Vercel
     
-    // URL sin parámetros extra para evitar conflictos de versión
+    if (!apiKey) {
+      return NextResponse.json({ error: "Falta configurar la API Key en Vercel" }, { status: 500 });
+    }
+
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const systemPrompt = `Eres un experto en branding y diseño web. 
@@ -18,9 +21,7 @@ export async function POST(req: Request) {
       "hero_titulo": "TEXTO CORTO",
       "hero_subtitulo": "TEXTO VENDEDOR",
       "font_style": "moderno"
-    }
-
-    No incluyas explicaciones ni markdown. Solo el JSON.`;
+    }`;
 
     const response = await fetch(url, {
       method: "POST",
@@ -39,16 +40,12 @@ export async function POST(req: Request) {
     }
 
     let text = data.candidates[0].content.parts[0].text;
-    
-    // Limpiamos cualquier rastro de markdown que Gemini suele agregar (```json ... ```)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("La IA no devolvió un formato válido");
     
     const design = JSON.parse(jsonMatch[0]);
-
     return NextResponse.json(design);
   } catch (error: any) {
-    console.error("Error Crítico IA:", error);
-    return NextResponse.json({ error: "Fallo al procesar diseño con IA" }, { status: 500 });
+    return NextResponse.json({ error: "Fallo al procesar con IA" }, { status: 500 });
   }
 }
