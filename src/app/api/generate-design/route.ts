@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No se proporcionó un prompt" }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const systemPrompt = `
       Eres un director de arte experto en branding gastronómico y diseño web.
