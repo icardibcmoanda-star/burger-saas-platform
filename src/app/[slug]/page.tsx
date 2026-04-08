@@ -16,12 +16,12 @@ export default function ShopPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   useEffect(() => {
     async function loadShopData() {
       if (!slug) return;
 
-      // 1. Obtener datos del comercio
       const { data: shopData } = await supabase
         .from("comercios")
         .select("*")
@@ -31,7 +31,6 @@ export default function ShopPage() {
       if (shopData) {
         setShop(shopData);
 
-        // 2. Obtener categorías
         const { data: catData } = await supabase
           .from("categorias")
           .select("*")
@@ -41,7 +40,6 @@ export default function ShopPage() {
         setCategories(catData || []);
         if (catData?.length) setActiveCategory(catData[0].nombre);
 
-        // 3. Obtener productos
         const { data: prodData } = await supabase
           .from("productos")
           .select("*, categorias(nombre)")
@@ -68,12 +66,12 @@ export default function ShopPage() {
     </div>
   );
 
-  const filteredProducts = products.filter(p => p.categorias.nombre === activeCategory);
+  const filteredProducts = products.filter(p => p.categorias?.nombre === activeCategory);
 
   return (
     <CartProvider shopInfo={shop}>
       <main className="min-h-screen bg-black text-white pb-24" style={{ "--primary": shop.color_primario } as any}>
-        <Header shop={shop} />
+        <Header shop={shop} onCartClick={() => setIsCartOpen(true)} />
         
         <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl">
             <CategoryFilter 
@@ -91,7 +89,7 @@ export default function ShopPage() {
             </div>
         </div>
 
-        <CartDrawer shop={shop} />
+        <CartDrawer shop={shop} isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
       </main>
     </CartProvider>
   );
