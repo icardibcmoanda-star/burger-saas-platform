@@ -7,38 +7,52 @@ export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
 
+    if (!prompt) {
+      return NextResponse.json({ error: "No se proporcionó un prompt" }, { status: 400 });
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const systemPrompt = `
       Eres un director de arte experto en branding gastronómico y diseño web.
-      Tu tarea es recibir la descripción de una hamburguesería y generar una identidad visual y textos de impacto.
+      Recibirás la descripción de una hamburguesería y generarás una identidad visual y textos de impacto.
       
-      Debes responder ÚNICAMENTE con un objeto JSON con la siguiente estructura exacta:
+      Responde EXCLUSIVAMENTE con un objeto JSON válido (sin texto antes ni después) con esta estructura:
       {
         "color_primario": "HEX_COLOR",
         "bg_color": "HEX_COLOR",
         "hero_titulo": "TITULO_IMPACTANTE",
         "hero_subtitulo": "SUBTITULO_VENDEDOR",
-        "font_style": "moderno" | "retro" | "elegante" | "urbano"
+        "font_style": "moderno"
       }
 
-      REGLAS:
-      - Los colores deben contrastar bien (el texto siempre será blanco o negro sobre el fondo).
-      - El título debe ser corto y en MAYÚSCULAS.
-      - Solo responde el JSON, nada de texto extra.
+      REGLAS CRÍTICAS:
+      - El JSON debe ser válido.
+      - Los colores deben ser legibles.
+      - El título debe ser corto.
     `;
 
-    const result = await model.generateContent([systemPrompt, `Descripción del local: ${prompt}`]);
+    const result = await model.generateContent([systemPrompt, `Descripción: ${prompt}`]);
     const response = await result.response;
     const text = response.text();
     
-    // Limpiamos la respuesta por si Gemini agrega markdown
-    const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    const design = JSON.parse(jsonStr);
+    try {
+      // Extraer JSON usando regex por si Gemini manda texto extra
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("No se encontró JSON en la respuesta");
+      
+      const design = JSON.parse(jsonMatch[0]);
+      return NextResponse.json(design);
+    } catch (parseError) {
+      console.error("Error parseando JSON de Gemini:", text);
+      return NextResponse.json({ error: "La IA devolvió un formato inválido", raw: text }, { status: 500 });
+    }
 
-    return NextResponse.json(design);
-  } catch (error) {
-    console.error("Error Gemini:", error);
-    return NextResponse.json({ error: "Fallo al generar diseño" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error Gemini API:", error);
+    return NextResponse.json({ 
+      error: "Error en la API de Gemini", 
+      details: error.message || "Error desconocido"
+    }, { status: 500 });
   }
 }

@@ -50,9 +50,13 @@ export default function AdminPage() {
             body: JSON.stringify({ prompt: iaPrompt })
         });
         
-        if (!res.ok) throw new Error("Error en la API de Gemini");
+        const data = await res.json();
         
-        const design = await res.json();
+        if (!res.ok) {
+            throw new Error(data.details || data.error || "Error desconocido");
+        }
+        
+        const design = data;
         
         // Guardamos el diseño en Supabase
         const { error: updateError } = await supabase.from("comercios").update({
@@ -64,10 +68,12 @@ export default function AdminPage() {
 
         if (updateError) throw updateError;
 
-        alert("✨ ¡Diseño generado con éxito! Refrescando...");
-        window.location.reload(); // Recarga para aplicar los cambios globales
+        alert("✨ ¡Diseño generado con éxito! Aplicando cambios...");
+        selectComercio({...selectedComercio, ...design});
+        setIaPrompt("");
     } catch (e: any) {
-        alert("Error: " + (e.message || "No se pudo generar el diseño"));
+        console.error(e);
+        alert("Fallo de IA: " + e.message);
     } finally {
         setIsGenerating(false);
     }
