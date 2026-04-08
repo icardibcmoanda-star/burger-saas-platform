@@ -26,7 +26,7 @@ export async function POST(req: Request) {
           parts: [{ text: `${systemPrompt}\n\nDescripción del local: ${prompt}` }]
         }],
         generationConfig: {
-          response_mime_type: "application/json"
+          responseMimeType: "application/json"
         }
       })
     });
