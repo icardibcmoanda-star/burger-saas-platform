@@ -1,58 +1,49 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-
-const genAI = new GoogleGenerativeAI("AIzaSyCh2DrQusiYh2ki7sTxWc5X-I6TuHx4bKE");
 
 export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
-
-    if (!prompt) {
-      return NextResponse.json({ error: "No se proporcionó un prompt" }, { status: 400 });
-    }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-    const systemPrompt = `
-      Eres un director de arte experto en branding gastronómico y diseño web.
-      Recibirás la descripción de una hamburguesería y generarás una identidad visual y textos de impacto.
-      
-      Responde EXCLUSIVAMENTE con un objeto JSON válido (sin texto antes ni después) con esta estructura:
-      {
-        "color_primario": "HEX_COLOR",
-        "bg_color": "HEX_COLOR",
-        "hero_titulo": "TITULO_IMPACTANTE",
-        "hero_subtitulo": "SUBTITULO_VENDEDOR",
-        "font_style": "moderno"
-      }
-
-      REGLAS CRÍTICAS:
-      - El JSON debe ser válido.
-      - Los colores deben ser legibles.
-      - El título debe ser corto.
-    `;
-
-    const result = await model.generateContent([systemPrompt, `Descripción: ${prompt}`]);
-    const response = await result.response;
-    const text = response.text();
+    const apiKey = "AIzaSyCh2DrQusiYh2ki7sTxWc5X-I6TuHx4bKE";
     
-    try {
-      // Extraer JSON usando regex por si Gemini manda texto extra
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No se encontró JSON en la respuesta");
-      
-      const design = JSON.parse(jsonMatch[0]);
-      return NextResponse.json(design);
-    } catch (parseError) {
-      console.error("Error parseando JSON de Gemini:", text);
-      return NextResponse.json({ error: "La IA devolvió un formato inválido", raw: text }, { status: 500 });
+    // Usamos la URL directa de la API de Google (v1) para máxima estabilidad
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const systemPrompt = `Eres un experto en branding y diseño web. 
+    Responde UNICAMENTE con un objeto JSON (sin texto extra ni markdown):
+    {
+      "color_primario": "HEX",
+      "bg_color": "HEX",
+      "hero_titulo": "TEXTO CORTO",
+      "hero_subtitulo": "TEXTO VENDEDOR",
+      "font_style": "moderno"
+    }`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: `${systemPrompt}\n\nDescripción del local: ${prompt}` }]
+        }],
+        generationConfig: {
+          response_mime_type: "application/json"
+        }
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error Gemini Directo:", data);
+      return NextResponse.json({ error: "Error en Google API", details: data.error?.message }, { status: 500 });
     }
 
+    const text = data.candidates[0].content.parts[0].text;
+    const design = JSON.parse(text);
+
+    return NextResponse.json(design);
   } catch (error: any) {
-    console.error("Error Gemini API:", error);
-    return NextResponse.json({ 
-      error: "Error en la API de Gemini", 
-      details: error.message || "Error desconocido"
-    }, { status: 500 });
+    console.error("Error Crítico IA:", error);
+    return NextResponse.json({ error: "Error de conexión con la IA" }, { status: 500 });
   }
 }
