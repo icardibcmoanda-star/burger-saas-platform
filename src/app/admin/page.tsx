@@ -51,14 +51,20 @@ export default function AdminPage() {
     if (!error) {
         fetchComercios();
         setNewComercio({ nombre: "", slug: "", whatsapp_numero: "", color_primario: "#dc2626" });
+    } else {
+        alert("Error Supabase (Comercio): " + error.message);
     }
   }
 
   async function addCategoria() {
     const nombre = prompt("Nombre de la categoría:");
     if (!nombre || !selectedComercio) return;
-    await supabase.from("categorias").insert([{ comercio_id: selectedComercio.id, nombre, orden: categorias.length }]);
-    selectComercio(selectedComercio);
+    const { error } = await supabase.from("categorias").insert([{ comercio_id: selectedComercio.id, nombre, orden: categorias.length }]);
+    if (!error) {
+        selectComercio(selectedComercio);
+    } else {
+        alert("Error Supabase (Categoría): " + error.message);
+    }
   }
 
   async function handleSaveProduct(e: React.FormEvent) {
