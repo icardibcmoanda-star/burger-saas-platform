@@ -53,9 +53,20 @@ export default function AdminPage() {
             method: "POST",
             body: JSON.stringify({ menuText: bulkText })
         });
-        const items = await res.json();
         
-        // Insertamos todos los productos en la primera categoría por defecto (luego el usuario los mueve si quiere)
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.details || data.error || "Fallo en la comunicación con la IA");
+        }
+
+        const items = data;
+        
+        if (!Array.isArray(items)) {
+            throw new Error("La IA no devolvió una lista válida de productos. Probá siendo más específico en el texto.");
+        }
+
+        // Insertamos todos los productos en la primera categoría por defecto
         const categoryId = categorias[0].id;
         const productsToInsert = items.map((item: any) => ({
             ...item,
