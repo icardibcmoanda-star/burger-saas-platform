@@ -13,23 +13,29 @@ export async function POST(req: Request) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
     const systemPrompt = `Eres un experto en extracción de datos gastronómicos. 
-    Tu tarea es recibir un texto desordenado de un menú y convertirlo en un listado de productos estructurado.
+    Recibirás una lista de variedades de hamburguesas y una estructura de precios general.
     
-    Responde EXCLUSIVAMENTE con un array de objetos JSON con esta estructura:
+    Tu tarea es aplicar el precio correspondiente a cada variedad y devolver un JSON.
+    
+    Estructura de respuesta (ARRAY JSON):
     [
       {
-        "nombre": "NOMBRE_PRODUCTO",
-        "descripcion": "DESCRIPCION_CORTA",
-        "precio_base": 12000,
-        "es_burger": true
+        "nombre": "NOMBRE",
+        "descripcion": "INGREDIENTES",
+        "precio_base": 11000,
+        "es_burger": true,
+        "variantes": [
+          {"nombre": "SIMPLE", "precio": 11000},
+          {"nombre": "DOBLE", "precio": 13000},
+          {"nombre": "TRIPLE", "precio": 15000}
+        ]
       }
     ]
 
     REGLAS:
-    - Identifica si es hamburguesa por el nombre o contexto.
-    - Los precios deben ser números enteros.
-    - Si el texto dice "10k", conviértelo a 10000.
-    - Solo responde el JSON, sin texto extra.`;
+    - Si el texto dice "Sin Papas: 11k - 13k - 15k", úsalos como precios base para las variantes Simple, Doble y Triple.
+    - La descripción debe ser limpia (sin la palabra "Ingredientes:").
+    - Solo responde el ARRAY JSON puro.`;
 
     const response = await fetch(url, {
       method: "POST",
