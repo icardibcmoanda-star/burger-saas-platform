@@ -44,6 +44,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
 
   if (!isOpen) return null;
 
+  const primaryColor = shop.color_primario || "#dc2626";
+
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
@@ -54,7 +56,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
       >
         <div className="p-6 flex items-center justify-between border-b border-white/5">
           <div className="flex items-center gap-3">
-            <div className="bg-red-600 p-2 rounded-xl">
+            <div className="p-2 rounded-xl" style={{ backgroundColor: primaryColor }}>
                 <ShoppingBag className="text-white" size={20} />
             </div>
             <h2 className="text-xl font-black uppercase tracking-tighter text-white italic">TU PEDIDO</h2>
@@ -80,7 +82,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
                             <div className="flex-grow flex flex-col justify-between py-0.5">
                                 <div className="flex justify-between items-start">
                                     <h4 className="font-black text-xs uppercase tracking-tight text-white italic leading-tight max-w-[150px]">{item.name}</h4>
-                                    <span className="text-red-500 font-black text-sm italic">
+                                    <span className="font-black text-sm italic" style={{ color: primaryColor }}>
                                     ${(item.price * item.quantity).toLocaleString("es-AR")}
                                     </span>
                                 </div>
@@ -119,9 +121,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
                             onClick={() => setPaymentMethod("Efectivo")}
                             className={`flex flex-col items-center gap-2 py-5 rounded-[2rem] border-2 transition-all ${
                                 paymentMethod === "Efectivo" 
-                                ? "bg-red-600 border-red-600 text-white shadow-xl shadow-red-900/40" 
+                                ? "text-white shadow-xl shadow-red-900/40" 
                                 : "bg-black border-white/5 text-neutral-600 hover:border-white/10"
                             }`}
+                            style={paymentMethod === "Efectivo" ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                         >
                             <Banknote size={20} />
                             <span className="text-[10px] font-black uppercase italic tracking-widest">Efectivo</span>
@@ -130,9 +133,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
                             onClick={() => setPaymentMethod("Transferencia")}
                             className={`flex flex-col items-center gap-2 py-5 rounded-[2rem] border-2 transition-all ${
                                 paymentMethod === "Transferencia" 
-                                ? "bg-red-600 border-red-600 text-white shadow-xl shadow-red-900/40" 
+                                ? "text-white shadow-xl shadow-red-900/40" 
                                 : "bg-black border-white/5 text-neutral-600 hover:border-white/10"
                             }`}
+                            style={paymentMethod === "Transferencia" ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                         >
                             <CreditCard size={20} />
                             <span className="text-[10px] font-black uppercase italic tracking-widest">Transf.</span>
@@ -155,7 +159,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
             
             <div className="flex justify-between items-end mb-2 px-2">
                 <span className="text-neutral-600 font-black uppercase tracking-[0.2em] text-[10px] italic">Total final</span>
-                <span className="text-4xl font-black text-white italic tracking-tighter">
+                <span className="text-4xl font-black italic tracking-tighter" style={{ color: primaryColor }}>
                     ${totalPrice.toLocaleString("es-AR")}
                 </span>
             </div>
@@ -163,7 +167,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, shop })
             <button
               onClick={handleSendOrder}
               disabled={!customerName || !paymentMethod}
-              className="w-full flex items-center justify-center gap-4 py-5 bg-red-600 text-white rounded-3xl font-black uppercase tracking-[0.3em] hover:bg-red-700 disabled:opacity-20 transition-all shadow-xl shadow-red-900/20 italic text-xs"
+              className="w-full flex items-center justify-center gap-4 py-5 text-white rounded-3xl font-black uppercase tracking-[0.3em] hover:brightness-110 disabled:opacity-20 transition-all shadow-xl italic text-xs"
+              style={{ backgroundColor: primaryColor }}
             >
               <Send size={18} />
               Enviar Pedido

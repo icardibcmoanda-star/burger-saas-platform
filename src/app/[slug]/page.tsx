@@ -8,6 +8,7 @@ import { CategoryFilter } from "@/components/CategoryFilter";
 import { ProductCard } from "@/components/ProductCard";
 import { CartDrawer } from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
+import { motion } from "framer-motion";
 
 export default function ShopPage() {
   const { slug } = useParams();
@@ -67,13 +68,42 @@ export default function ShopPage() {
   );
 
   const filteredProducts = products.filter(p => p.categorias?.nombre === activeCategory);
+  
+  // Estilo dinámico basado en la IA o configuración manual
+  const primaryColor = shop.color_primario || "#dc2626";
+  const bgColor = shop.config_ia?.bg_color || "#000000";
+  const isLightBg = bgColor.toLowerCase() === "#ffffff" || bgColor.toLowerCase() === "white";
 
   return (
     <CartProvider shopInfo={shop}>
-      <main className="min-h-screen bg-black text-white pb-24" style={{ "--primary": shop.color_primario } as any}>
+      <main 
+        className={`min-h-screen pb-24 transition-colors duration-1000 ${isLightBg ? 'bg-neutral-50 text-neutral-900' : 'bg-black text-white'}`}
+        style={{ "--primary": primaryColor } as any}
+      >
         <Header shop={shop} onCartClick={() => setIsCartOpen(true)} />
         
-        <div className="sticky top-0 z-40 bg-black/80 backdrop-blur-xl">
+        {/* HERO DINÁMICO (Generado por IA) */}
+        <section className="relative h-[40vh] flex items-center justify-center overflow-hidden" style={{ backgroundColor: primaryColor }}>
+            <div className="absolute inset-0 opacity-20">
+                <img src="https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1965&auto=format&fit=crop" className="w-full h-full object-cover grayscale blur-[1px]" alt="" />
+            </div>
+            <div className="relative z-10 text-center px-6">
+                <motion.h2 
+                    initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                    className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white leading-none"
+                >
+                    {shop.hero_titulo || shop.nombre}
+                </motion.h2>
+                <motion.p 
+                    initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}
+                    className="mt-4 text-white/80 font-bold uppercase tracking-[0.2em] text-[10px] md:text-xs italic"
+                >
+                    {shop.hero_subtitulo || "Original Taste & Culture"}
+                </motion.p>
+            </div>
+        </section>
+
+        <div className={`sticky top-0 z-40 backdrop-blur-xl border-b ${isLightBg ? 'bg-white/80 border-neutral-200' : 'bg-black/80 border-white/5'}`}>
             <CategoryFilter 
                 categories={categories.map(c => c.nombre)} 
                 active={activeCategory} 

@@ -28,7 +28,8 @@ export const Header: React.FC<HeaderProps> = ({ shop, onCartClick }) => {
       </div>
       <button
         onClick={onCartClick}
-        className="relative p-3 bg-red-600 rounded-2xl hover:bg-red-700 transition-all shadow-lg shadow-red-900/20 active:scale-95"
+        className="relative p-3 rounded-2xl hover:brightness-110 transition-all shadow-lg active:scale-95"
+        style={{ backgroundColor: "var(--primary)" }}
       >
         <ShoppingBag size={20} className="text-white" />
         {totalItems > 0 && (

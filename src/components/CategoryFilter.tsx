@@ -17,9 +17,10 @@ export const CategoryFilter: React.FC<CategoryFilterProps> = ({ categories, acti
           onClick={() => onChange(category)}
           className={`whitespace-nowrap px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border-2 italic ${
             active === category
-              ? "bg-red-600 border-red-600 text-white shadow-xl shadow-red-900/40"
+              ? "text-white shadow-xl"
               : "bg-transparent border-white/10 text-neutral-500 hover:border-white/30"
           }`}
+          style={active === category ? { backgroundColor: "var(--primary)", borderColor: "var(--primary)" } : {}}
         >
           {category}
         </button>

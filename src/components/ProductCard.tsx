@@ -46,7 +46,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <h3 className="text-xl font-black text-white leading-none uppercase italic tracking-tighter">
             {product.nombre}
           </h3>
-          <span className="text-red-500 font-black text-xl italic tracking-tighter leading-none">
+          <span className="font-black text-xl italic tracking-tighter leading-none" style={{ color: "var(--primary)" }}>
             ${finalPrice?.toLocaleString("es-AR")}
           </span>
         </div>
@@ -93,7 +93,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => addToCart(product, variant?.nombre, withFries)}
-          className="mt-auto w-full flex items-center justify-center gap-3 py-4 bg-red-600 text-white rounded-2xl font-black hover:bg-red-700 transition-all shadow-xl shadow-red-900/20 uppercase tracking-[0.2em] text-[10px] italic"
+          className="mt-auto w-full flex items-center justify-center gap-3 py-4 text-white rounded-2xl font-black hover:brightness-110 transition-all shadow-xl uppercase tracking-[0.2em] text-[10px] italic"
+          style={{ backgroundColor: "var(--primary)" }}
         >
           <Plus size={14} />
           Agregar
