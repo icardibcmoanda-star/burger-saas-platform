@@ -70,8 +70,9 @@ export default function AdminPage() {
             setBulkText("");
             selectComercio(selectedComercio);
         }
-    } catch (e) {
-        alert("Error al procesar el menú");
+    } catch (e: any) {
+        console.error(e);
+        alert("Error: " + (e.details || e.message || "Fallo al procesar el menú"));
     } finally {
         setIsScanning(false);
     }

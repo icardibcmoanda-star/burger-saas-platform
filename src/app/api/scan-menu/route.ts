@@ -9,7 +9,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Falta API Key" }, { status: 500 });
     }
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // Usamos gemini-pro que es el que funcionó en las pruebas anteriores
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
 
     const systemPrompt = `Eres un experto en extracción de datos gastronómicos. 
     Tu tarea es recibir un texto desordenado de un menú y convertirlo en un listado de productos estructurado.
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
         "nombre": "NOMBRE_PRODUCTO",
         "descripcion": "DESCRIPCION_CORTA",
         "precio_base": 12000,
-        "es_burger": true/false
+        "es_burger": true
       }
     ]
 
@@ -41,13 +42,23 @@ export async function POST(req: Request) {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Error API Google:", data);
+      return NextResponse.json({ error: "Error en la API de Google", details: data.error?.message }, { status: 500 });
+    }
+
     const text = data.candidates[0].content.parts[0].text;
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     
-    if (!jsonMatch) throw new Error("Formato inválido");
+    if (!jsonMatch) {
+        console.error("Gemini no devolvió JSON válido:", text);
+        throw new Error("La IA no devolvió un listado válido");
+    }
     
     return NextResponse.json(JSON.parse(jsonMatch[0]));
-  } catch (error) {
-    return NextResponse.json({ error: "Fallo al escanear menú" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Error Crítico:", error);
+    return NextResponse.json({ error: "Fallo al procesar el menú", details: error.message }, { status: 500 });
   }
 }
