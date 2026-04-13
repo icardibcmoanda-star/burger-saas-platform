@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { Plus, Trash2, Store, Package, LayoutGrid, X, Image as ImageIcon, Sparkles, ChevronRight, Wand2, RefreshCw, FileText, ListPlus } from "lucide-react";
+import { Plus, Trash2, Store, Package, LayoutGrid, X, Image as ImageIcon, Sparkles, ChevronRight, Wand2, RefreshCw, FileText, ListPlus, Upload, Camera } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminPage() {
@@ -18,6 +18,7 @@ export default function AdminPage() {
   const [bulkText, setBulkText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [newComercio, setNewComercio] = useState({ nombre: "", slug: "", whatsapp_numero: "", color_primario: "#dc2626" });
@@ -42,51 +43,74 @@ export default function AdminPage() {
     setProductos(prods || []);
   }
 
-  const handleBulkUpload = async () => {
-    if (!bulkText || !selectedComercio || categorias.length === 0) {
-        alert("Escribí el menú y asegúrate de tener al menos una categoría creada.");
-        return;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedComercio || categorias.length === 0) return;
+
+    setIsScanning(true);
+    try {
+        // Convertir archivo a base64
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const base64 = (reader.result as string).split(",")[1];
+            const mimeType = file.type;
+
+            const res = await fetch("/api/scan-menu", {
+                method: "POST",
+                body: JSON.stringify({ 
+                    file: base64, 
+                    fileType: mimeType 
+                })
+            });
+            const items = await res.json();
+            await processItems(items);
+        };
+    } catch (e) {
+        alert("Error al leer el archivo");
+        setIsScanning(false);
     }
+  };
+
+  const handleBulkTextUpload = async () => {
+    if (!bulkText || !selectedComercio || categorias.length === 0) return;
     setIsScanning(true);
     try {
         const res = await fetch("/api/scan-menu", {
             method: "POST",
-            body: JSON.stringify({ menuText: bulkText })
+            body: JSON.stringify({ text: bulkText })
         });
-        
-        const data = await res.json();
-
-        if (!res.ok) {
-            throw new Error(data.details || data.error || "Fallo en la comunicación con la IA");
-        }
-
-        const items = data;
-        
-        if (!Array.isArray(items)) {
-            throw new Error("La IA no devolvió una lista válida de productos. Probá siendo más específico en el texto.");
-        }
-
-        // Insertamos todos los productos en la primera categoría por defecto
-        const categoryId = categorias[0].id;
-        const productsToInsert = items.map((item: any) => ({
-            ...item,
-            comercio_id: selectedComercio.id,
-            categoria_id: categoryId
-        }));
-
-        const { error } = await supabase.from("productos").insert(productsToInsert);
-        if (!error) {
-            alert(`¡Éxito! Se cargaron ${items.length} productos.`);
-            setIsBulkModalOpen(false);
-            setBulkText("");
-            selectComercio(selectedComercio);
-        }
-    } catch (e: any) {
-        console.error(e);
-        alert("Error: " + (e.details || e.message || "Fallo al procesar el menú"));
-    } finally {
+        const items = await res.json();
+        await processItems(items);
+    } catch (e) {
+        alert("Error al procesar texto");
         setIsScanning(false);
     }
+  };
+
+  const processItems = async (items: any[]) => {
+    if (!Array.isArray(items)) {
+        alert("No se detectaron productos válidos");
+        setIsScanning(false);
+        return;
+    }
+    const categoryId = categorias[0].id;
+    const productsToInsert = items.map((item: any) => ({
+        ...item,
+        comercio_id: selectedComercio.id,
+        categoria_id: categoryId
+    }));
+
+    const { error } = await supabase.from("productos").insert(productsToInsert);
+    if (!error) {
+        alert(`¡Éxito! Se cargaron ${items.length} productos.`);
+        setIsBulkModalOpen(false);
+        setBulkText("");
+        selectComercio(selectedComercio);
+    } else {
+        alert("Error al guardar en DB: " + error.message);
+    }
+    setIsScanning(false);
   };
 
   const generateWithIA = async () => {
@@ -115,8 +139,8 @@ export default function AdminPage() {
 
   async function handleCreateComercio(e: React.FormEvent) {
     e.preventDefault();
-    const { error } = await supabase.from("comercios").insert([newComercio]);
-    if (!error) fetchComercios();
+    await supabase.from("comercios").insert([newComercio]);
+    fetchComercios();
   }
 
   async function handleSaveProduct(e: React.FormEvent) {
@@ -141,7 +165,7 @@ export default function AdminPage() {
                 <div className="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center rotate-3 shadow-lg">
                     <Store size={20} className="text-white" />
                 </div>
-                <h2 className="text-xl font-black uppercase tracking-tighter italic text-neutral-800">Admin<span className="text-blue-600">Burger</span></h2>
+                <h2 className="text-xl font-black uppercase tracking-tighter italic text-neutral-800 leading-none">Burger<span className="text-blue-600">SaaS</span></h2>
             </div>
 
             <div className="space-y-8">
@@ -196,7 +220,7 @@ export default function AdminPage() {
                             <div>
                                 <div className="flex items-center gap-3 mb-4">
                                     <Sparkles size={20} className="text-blue-600" />
-                                    <h3 className="text-lg font-black uppercase italic text-neutral-800">Diseño IA</h3>
+                                    <h3 className="text-lg font-black uppercase italic text-neutral-800 leading-none">Diseño IA</h3>
                                 </div>
                                 <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-6">Rediseñá tu web en un segundo</p>
                                 <input 
@@ -211,27 +235,30 @@ export default function AdminPage() {
                         </div>
 
                         {/* BULK UPLOAD */}
-                        <div className="p-8 bg-neutral-900 text-white rounded-[2.5rem] shadow-xl flex flex-col justify-between">
-                            <div>
+                        <div className="p-8 bg-neutral-900 text-white rounded-[2.5rem] shadow-xl flex flex-col justify-between relative overflow-hidden group">
+                            <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                                <Camera size={120} />
+                            </div>
+                            <div className="relative z-10">
                                 <div className="flex items-center gap-3 mb-4">
                                     <ListPlus size={20} className="text-blue-400" />
-                                    <h3 className="text-lg font-black uppercase italic">Carga Masiva</h3>
+                                    <h3 className="text-lg font-black uppercase italic leading-none">Carga Masiva</h3>
                                 </div>
-                                <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest mb-6 text-white/60">Pegá tu menú y la IA hará el resto</p>
-                                <p className="text-[10px] text-neutral-400 leading-relaxed italic">Ideal para cargar toda la carta de una sola vez sin completar formularios.</p>
+                                <p className="text-[10px] font-bold uppercase tracking-widest mb-6 text-white/60 italic">Subí tu carta física o pegá el texto</p>
+                                <p className="text-[10px] text-neutral-400 leading-relaxed italic">Sacale una foto al menú impreso y Gemini cargará todos los productos solos.</p>
                             </div>
-                            <button onClick={() => setIsBulkModalOpen(true)} className="w-full mt-6 py-4 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-400 transition-all flex items-center justify-center gap-2 italic">
+                            <button onClick={() => setIsBulkModalOpen(true)} className="relative z-10 w-full mt-6 py-4 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-400 transition-all flex items-center justify-center gap-2 italic">
                                 <FileText size={14} />
-                                ESCANEAR CARTA
+                                ESCANEAR CARTA (FOTO/PDF)
                             </button>
                         </div>
                     </div>
 
                     {/* Menú Section */}
-                    <div className="space-y-12">
+                    <div className="space-y-12 pb-20">
                         <div className="flex items-center justify-between">
                             <h3 className="text-3xl font-black uppercase italic tracking-tighter text-neutral-800 leading-none">Tu Menú</h3>
-                            <button onClick={() => {const n = prompt("Nombre:"); if(n) supabase.from("categorias").insert([{comercio_id: selectedComercio.id, nombre: n.toUpperCase()}]).then(() => selectComercio(selectedComercio))}} className="bg-neutral-100 px-6 py-3 rounded-xl text-[10px] font-black uppercase italic hover:bg-neutral-900 hover:text-white transition-all">+ Categoría</button>
+                            <button onClick={() => {const n = prompt("Nombre:"); if(n) supabase.from("categorias").insert([{comercio_id: selectedComercio.id, nombre: n.toUpperCase()}]).then(() => selectComercio(selectedComercio))}} className="bg-neutral-100 px-6 py-3 rounded-xl text-[10px] font-black uppercase italic hover:bg-neutral-900 hover:text-white transition-all tracking-widest">+ Categoría</button>
                         </div>
 
                         <div className="grid grid-cols-1 gap-8">
@@ -239,7 +266,7 @@ export default function AdminPage() {
                                 <div key={cat.id} className="bg-neutral-50 rounded-[3rem] border border-neutral-200 p-8 lg:p-12 shadow-sm">
                                     <div className="flex justify-between items-center mb-8">
                                         <h4 className="text-2xl font-black uppercase italic text-neutral-800 tracking-tighter">{cat.nombre}</h4>
-                                        <button onClick={() => {if(confirm("¿Borrar categoría?")) supabase.from("categorias").delete().eq("id", cat.id).then(() => selectComercio(selectedComercio))}} className="text-neutral-300 hover:text-red-500"><Trash2 size={18} /></button>
+                                        <button onClick={() => {if(confirm("¿Borrar?")) supabase.from("categorias").delete().eq("id", cat.id).then(() => selectComercio(selectedComercio))}} className="text-neutral-300 hover:text-red-500"><Trash2 size={18} /></button>
                                     </div>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -271,41 +298,64 @@ export default function AdminPage() {
             ) : (
                 <div className="h-full flex flex-col items-center justify-center text-neutral-200">
                     <Store size={160} strokeWidth={0.5} className="mb-8 opacity-10 animate-pulse" />
-                    <p className="text-2xl font-black uppercase tracking-[0.6em] italic opacity-20 text-neutral-400 text-center px-6 leading-loose">Elegí o creá un local <br /> para empezar a vender</p>
+                    <p className="text-2xl font-black uppercase tracking-[0.6em] italic opacity-20 text-neutral-400 text-center px-6 leading-loose">Elegí un local <br /> para empezar</p>
                 </div>
             )}
         </div>
       </div>
 
-      {/* Modal Carga Masiva */}
+      {/* Modal Carga Masiva (Actualizado con Archivos) */}
       <AnimatePresence>
         {isBulkModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-neutral-900/60 backdrop-blur-md">
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsBulkModalOpen(false)} className="absolute inset-0" />
                 <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative bg-white border border-neutral-200 w-full max-w-xl rounded-[3rem] p-10 lg:p-16 shadow-2xl">
                     <button onClick={() => setIsBulkModalOpen(false)} className="absolute top-8 right-8 text-neutral-400 hover:text-black"><X size={32} /></button>
-                    <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-6 leading-none">Escáner de Menú</h2>
-                    <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-8">Pegá el texto de tu menú desordenado abajo</p>
+                    <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-2 leading-none">Escáner IA</h2>
+                    <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-10 italic">Subí una foto de tu carta física o pegá el texto</p>
                     
-                    <textarea 
-                        placeholder="Ej: Hamburguesa Simple 8000, Doble 10000. Papas fritas grandes 5000..." 
-                        value={bulkText} onChange={(e) => setBulkText(e.target.value)}
-                        className="w-full h-64 bg-neutral-50 border border-neutral-200 rounded-[2rem] p-8 text-sm font-bold focus:border-blue-600 outline-none transition-all italic resize-none mb-8"
-                    />
-                    
-                    <button 
-                        onClick={handleBulkUpload} disabled={isScanning || !bulkText}
-                        className="w-full py-6 bg-neutral-900 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center justify-center gap-3 italic"
-                    >
-                        {isScanning ? <RefreshCw className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                        {isScanning ? "IA ESCANEANDO..." : "CARGAR TODO AL MENÚ"}
-                    </button>
+                    <div className="space-y-8">
+                        {/* Dropzone / Upload */}
+                        <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full p-12 border-2 border-dashed border-neutral-200 rounded-[2.5rem] bg-neutral-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all group"
+                        >
+                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="image/*,application/pdf" className="hidden" />
+                            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                <Upload className="text-blue-600" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-xs font-black uppercase italic italic tracking-widest">Subir Foto o PDF</p>
+                                <p className="text-[9px] text-neutral-400 font-bold uppercase mt-1">JPG, PNG, PDF soportados</p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <div className="h-px flex-grow bg-neutral-100" />
+                            <span className="text-[9px] font-black text-neutral-300 uppercase tracking-widest">O PEGAR TEXTO</span>
+                            <div className="h-px flex-grow bg-neutral-100" />
+                        </div>
+
+                        <textarea 
+                            placeholder="Ej: Hamburguesa Simple 8000..." 
+                            value={bulkText} onChange={(e) => setBulkText(e.target.value)}
+                            className="w-full h-32 bg-neutral-50 border border-neutral-200 rounded-[1.5rem] p-6 text-xs font-bold focus:border-blue-600 outline-none transition-all italic resize-none"
+                        />
+                        
+                        <button 
+                            onClick={handleBulkTextUpload} disabled={isScanning || (!bulkText && !isScanning)}
+                            className="w-full py-6 bg-neutral-900 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center justify-center gap-3 italic"
+                        >
+                            {isScanning ? <RefreshCw className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                            {isScanning ? "IA ESCANEANDO..." : "PROCESAR TEXTO PEGADO"}
+                        </button>
+                    </div>
                 </motion.div>
             </div>
         )}
       </AnimatePresence>
 
-      {/* Modal Individual (Simplificado) */}
+      {/* Modal Individual */}
       <AnimatePresence>
         {isProductModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-neutral-900/40 backdrop-blur-sm">
